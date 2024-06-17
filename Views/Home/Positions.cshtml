@@ -1,0 +1,253 @@
+﻿@using HR.Apografi.ViewModels
+@model OrganizationPositionsViewModel
+
+@{
+    ViewData["Title"] = "Θέσεις Φορέα";
+}
+
+<h2>@Model.OrganizationName</h2>
+<label>Οργανικές θέσεις</label>
+<div>
+    <ul>
+        @foreach (var position in Model.Positions)
+        {
+            <li>@position.Label</li>
+        }
+    </ul>
+</div>
+
+<div>
+    <button type="button" class="btn btn-primary" title="Ανάκτηση προκυρήξεων πλήρωσης θέσεων" onclick="GetProkiriksis(@Model.OrganizationIdDiavgeia)">Προκυρήξεις</button>
+    <button type="button" class="btn btn-primary" title="Ανάκτηση πίνακων επιτυχόντων, διοριστέων και επιλαχόντων" onclick="GetPinakes(@Model.OrganizationIdDiavgeia)">Πίνακες</button>
+    <button type="button" class="btn btn-primary" title="Ανάκτηση Διορισμών" onclick="GetDiorismoi(@Model.OrganizationIdDiavgeia)">Διορισμοί</button>
+</div>
+
+<div id="recordsPlaceholder" style="display:none">
+    <h3 id="SearchResultHeader" style="margin-top:20px"></h3>
+    <label id="SearchResultLabel"></label>
+    <div style="overflow-y:scroll; height:500px; display:block;">
+        <table class="table table-striped table-hover table-bordered" id="records">
+            <thead>
+                <tr style="height:65px">
+                    <th scope="col" style="width:85px">ΑΔΑ</th>
+                    <th scope="col">Θέμα</th>
+                </tr>
+            </thead>
+
+            <tbody id="tResultBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="overlay" style="display:none;">
+    <div class="spinner-border m-5" style="width: 3rem; height: 3rem;" role="status"></div>
+</div>
+
+<div id="decisionInfoModal" tabindex="-1" class="modal fade" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabel">Πληροφορίες απόφασης</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div id="decisionInfoModalBody" class="modal-body">
+                <form id="formModal" style="margin:20px">
+                    <div class="mb-3">
+                        <label for="formAda" class="form-label">ΑΔΑ</label>
+                        <input id="formAda" type="text" disabled readonly class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formPublishDate" class="form-label">Ημερομηνία ανάρτησης</label>
+                        <input id="formPublishDate" type="text" disabled readonly class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formModifyDate" class="form-label">Τελευταία τροποποίηση</label>
+                        <input id="formModifyDate" type="text" disabled readonly class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <a id="formFile" href="" title="Λήψη αρχείου" target="_self">
+                            <img src="/img/pdf.png" alt="Λήψη αρχείου" width="25" height="25" />
+                            Λήψη αρχείου
+                        </a>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formSubject" class="form-label">Θέμα</label>
+                        <textarea id="formSubject" disabled readonly class="form-control"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formProtocol" class="form-label">Αρ. πρωτοκόλλου</label>
+                        <input id="formProtocol" type="text" disabled readonly class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formIssueDate" class="form-label">Ημερομηνία έκδοσης</label>
+                        <input id="formIssueDate" type="text" disabled readonly class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formDecType" class="form-label">Είδος πράξης</label>
+                        <textarea id="formDecType" disabled readonly class="form-control"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Έξοδος</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function SetLoadingState(isLoading) {
+        if (isLoading) {
+            $("#overlay").fadeIn();
+        } else {
+            $("#overlay").fadeOut();
+        }
+    };
+
+    function GetProkiriksis(orgId) {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/prokiriksis/' + orgId,
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                ShowDecisions(response);
+                $("#SearchResultHeader").text("Προκυρήξεις πλήρωσης θέσεων");
+                $("#SearchResultLabel").text("Προβολή των αποτελεσμάτων των τελευταίων 180 ημερών.");
+            },
+            error: function (error) {
+                alert(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    }
+
+    function GetPinakes(orgId) {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/pinakes/' + orgId,
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                ShowDecisions(response);
+                $("#SearchResultHeader").text("Πίνακες επιτυχόντων, διοριστέων και επιλαχόντων");
+                $("#SearchResultLabel").text("Προβολή των αποτελεσμάτων των τελευταίων 180 ημερών.");
+            },
+            error: function (error) {
+                alert(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    }
+
+    function GetDiorismoi(orgId) {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/diorismoi/' + orgId,
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                ShowDecisions(response);
+                $("#SearchResultHeader").text("Διορισμοί");
+                $("#SearchResultLabel").text("Προβολή των αποτελεσμάτων των τελευταίων 180 ημερών.");
+            },
+            error: function (error) {
+                alert(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    }
+
+    function ShowDecisions(data) {
+        $("#recordsPlaceholder").show();
+
+        if (data == null || data.length == 0) {
+            $('#tResultBody').html('');
+            return;
+        }
+
+        var resultHtml = '';
+
+        for (let index = 0; index < data.length; index++) {
+            resultHtml += '<tr scope="row">';
+            resultHtml += '<td>' +
+                '<button onclick="FetchDecisionDetails(\'' + data[index].ada + '\')" data-toggle="tooltip" data-placement="bottom" title="Προβολή λεπτομερειών απόφασης" type="button" class="btn btn-link">' + data[index].ada + '</button>' +
+                '</td>';
+            resultHtml += '<td>' + data[index].subject + '</td>';
+            resultHtml += '</tr>'
+        }
+
+        $('#tResultBody').html(resultHtml);
+    }
+
+    function FetchDecisionDetails(ada) {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/decision-details/' + ada,
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                ShowDecisionDetails(response);
+            },
+            error: function (error) {
+                alert(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    }
+
+    function ShowDecisionDetails(data) {
+        $("#formModal")[0].reset();
+
+        if (data == null || data == undefined) {
+            return;
+        }
+
+        $('#formAda').val(data.ada);
+        $('#formSubject').val(data.subject);
+        $('#formProtocol').val(data.protocolNumber);
+        $('#formFile').attr("href", data.documentUrl);
+
+        var pubDate = new Date(data.publishTimestamp).toLocaleString("el-GR")
+        $('#formPublishDate').val(pubDate);
+
+        var subDate = new Date(data.submissionTimestamp).toLocaleString("el-GR")
+        $('#formModifyDate').val(subDate);
+
+        var issueDate = new Date(data.issueDate).toLocaleString("el-GR")
+        $('#formIssueDate').val(issueDate);
+
+        if (data.extraFieldValues != undefined && data.extraFieldValues.vacancyOpeningType != undefined) {
+            $('#formDecType').val(data.extraFieldValues.vacancyOpeningType);
+        }
+
+        $('#decisionInfoModal').modal('show');
+    };
+</script>

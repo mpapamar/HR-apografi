@@ -1,0 +1,451 @@
+﻿@{
+    ViewData["Title"] = "Φορείς";
+}
+
+@section DocumentReady {
+                localStorage.clear();
+                GetOrganizationTypes();
+                GetFunctions();
+                GetCities();
+}
+
+<h1>Φορείς</h1>
+
+<div style="margin:20px 0">
+    <form id="searchForm">
+        <label class="form-label">Κωδικός</label>
+        <input id="searchCode" type="text" class="form-control">
+
+        <label class="form-label">Επίσημη Ονομασία</label>
+        <input id="searchName" type="text" class="form-control" title="Η ονομασία δεν χρειάζεται να είναι ακριβής, θα επιστραφουν όλα τα αποτελέσματα που ταιριάζουν εστω και μερικώς" />
+
+        <label class="form-label">Κωδικός Εποπτεύων Φορέα</label>
+        <input id="searchParentCode" type="text" class="form-control">
+
+        <label class="form-label">Τύπος</label>
+        <select id="searchType" class="form-select">
+            <option value="-1" selected>Αναζήτηση...</option>
+        </select>
+
+        <label class="form-label">Επιχειρησιακή Λειτουργία</label>
+        <select id="searchFunction" class="form-select">
+            <option value="-1" selected>Αναζήτηση...</option>
+        </select>
+
+        <label class="form-label">Δήμος</label>
+        <select id="searchCity" class="js-states form-control form-select">
+            <option value="-1" selected>Αναζήτηση...</option>
+        </select>
+    </form>
+
+    <button type="button" class="btn btn-primary" onclick="SearchForOrganization()">Αναζήτηση</button>
+    <button type="button" class="btn btn-secondary" onclick="ClearSearchFields()">Καθαρισμός</button>
+
+    <button id="showAllBtn" class="btn btn-primary" onclick="GetAllOrganizations()" style="margin:20px 0">
+        Εμφάνισε όλους τους Φορείς
+    </button>
+</div>
+
+<div id="overlay" style="display:none;">
+    <div class="spinner-border m-5" style="width: 3rem; height: 3rem;" role="status"></div>
+</div>
+
+<div style="overflow-y:scroll; height:500px; display:block;">
+    <table class="table table-striped table-hover table-bordered" id="records">
+        <thead>
+            <tr style="height:65px">
+                <th scope="col" style="width:85px">Kωδικός</th>
+                <th scope="col">Επίσημη Ονομασία</th>
+                <th scope="col" style="width:185px">Κωδικός εποπτεύοντος φορέα</th>
+            </tr>
+        </thead>
+
+        <tbody id="tResultBody">
+        </tbody>
+    </table>
+</div>
+
+<div id="SearchResults"></div>
+
+<div id="orgInfoModal" tabindex="-1" class="modal fade" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabel">Πληροφορίες Οργανισμού</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div id="orgInfoModalBody" class="modal-body">
+                <form id="formModal" style="margin:20px">
+                    <div class="mb-3">
+                        <a id="formPositions" class="btn btn-success" role="button" href="" target="_blank">
+                            Προβολή Θέσεων
+                            <img src="/img/job.png" alt="θέσεις" width="25" height="25" />
+                        </a>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formCode" class="form-label">Μοναδικός κωδικός</label>
+                        <input type="text" disabled readonly class="form-control" id="formCode">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formLabel" class="form-label">Επίσημη Ονομασία</label>
+                        <input type="text" disabled readonly class="form-control" id="formLabel">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formVAT" class="form-label">Α.Φ.Μ.</label>
+                        <input type="text" disabled readonly class="form-control" id="formVAT">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formOrgType" class="form-label">Τύπος</label>
+                        <input type="text" disabled readonly class="form-control" id="formOrgType">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formParentOrg" class="form-label">Εποπτεύων Φορέας</label>
+                        <input type="text" disabled readonly class="form-control" id="formParentOrg">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formCreatedDate" class="form-label">Ημερομηνία Σύστασης</label>
+                        <input type="text" disabled readonly class="form-control" id="formCreatedDate">
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label for="formDescription" class="form-label">Περιγραφή</label>
+                        <textarea disabled readonly class="form-control" id="formDescription"></textarea>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label for="formCity" class="form-label">Δήμος</label>
+                        <input type="text" disabled readonly class="form-control" id="formCity">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formPostCode" class="form-label">Ταχυδρομικός κώδικας</label>
+                        <input type="text" disabled readonly class="form-control" id="formPostCode">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formFullAddress" class="form-label">Πλήρης διεύθυνση</label>
+                        <a id="formGmaps" href="" target="_blank" title="Προβολή στους χάρτες">
+                            <img src="/img/gmaps.png" alt="χάρτης" width="25" height="25" />
+                        </a>
+                        <textarea type="text" disabled readonly class="form-control" id="formFullAddress"></textarea>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label for="formUrlText" class="form-label">Ιστοσελίδα</label>
+                        <a id="formUrl" href="" target="_blank" title="Προβολή ιστοσελίδας">
+                            <img src="/img/browse.png" alt="Ιστοσελίδα" width="25" height="25" />
+                        </a>
+                        <input type="text" disabled readonly class="form-control" id="formUrlText" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formTelephone" class="form-label">Τηλέφωνο επικοινωνίας</label>
+                        <input type="text" disabled readonly class="form-control" id="formTelephone">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="formEmail" class="form-label">Διεύθυνση ηλεκτρονικού ταχυδρομείου</label>
+                        <a id="formSendEmail" href="" title="Αποστολή ηλεκτρονικού μηνύματος">
+                            <img src="/img/sendEmail.png" alt="αποστολή" width="25" height="25" />
+                        </a>
+                        <input type="text" disabled readonly class="form-control" id="formEmail" />
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Έξοδος</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function GetOrganizationTypes() {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/organization-types',
+            dataType: "json",
+            success: function (response) {
+                localStorage.setItem("orgTypes", JSON.stringify(response));
+
+                var selectOrgTypes = $('#searchType');
+
+                for (i = 0; i < response.length; i++) {
+                    var option = new Option(response[i].description, response[i].id);
+                    selectOrgTypes.append($(option));
+                }
+            },
+            error: function (error) {
+                $("#SearchResults").text(error.responseText);
+            }
+        })
+    };
+
+    function GetCities() {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/cities',
+            dataType: "json",
+            success: function (response) {
+                localStorage.setItem("cities", JSON.stringify(response));
+
+                var selectOrgTypes = $('#searchCity');
+
+                for (i = 0; i < response.length; i++) {
+                    var option = new Option(response[i].description, response[i].id);
+                    selectOrgTypes.append($(option));
+                }
+
+                $('#searchCity').select2({
+                    placeholder: {
+                        id: '-1',
+                        text: 'Αναζήτηση...'
+                    },
+                    allowClear: true
+                });
+            },
+            error: function (error) {
+                $("#SearchResults").text(error.responseText);
+            }
+        })
+    };
+
+    function GetFunctions() {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/functions',
+            dataType: "json",
+            success: function (response) {
+                localStorage.setItem("functions", JSON.stringify(response));
+
+                var selectOrgTypes = $('#searchFunction');
+
+                for (i = 0; i < response.length; i++) {
+                    var option = new Option(response[i].description, response[i].id);
+                    selectOrgTypes.append($(option));
+                }
+            },
+            error: function (error) {
+                $("#SearchResults").text(error.responseText);
+            }
+        })
+    };
+
+    function SearchForOrganization() {
+
+        var code = $("#searchCode").val();
+        if (code == '') {
+            code = undefined;
+        }
+
+        var label = $("#searchName").val();
+        if (label == '') {
+            label = undefined;
+        }
+
+        var parent = $("#searchParentCode").val();
+        if (parent == '') {
+            parent = undefined;
+        }
+
+        var purposeId = parseInt($("#searchFunction").val());
+        if (purposeId == -1) {
+            purposeId = undefined;
+        }
+
+        var organizationType = parseInt($("#searchType").val());
+        if (organizationType == -1) {
+            organizationType = undefined;
+        }
+
+        var city = parseInt($("#searchCity").val());
+        if (city == -1) {
+            city = undefined;
+        }
+
+        var searchData = {
+            "Code": code,
+            "PreferredLabel": label,
+            "SubOrganizationOf": parent,
+            "PurposeId": purposeId,
+            "OrganizationType": organizationType,
+            "SpatialCountryId": 1,
+            "SpatialMunicipalityId": city
+        };
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/organizations/search',
+            data: JSON.stringify(searchData),
+            contentType: "application/json",
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                PrintResults(response);
+            },
+            error: function (error) {
+                $("#SearchResults").text(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    };
+
+    function GetAllOrganizations() {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/all',
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                PrintResults(response);
+            },
+            error: function (error) {
+                $("#SearchResults").text(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    };
+
+    function SetLoadingState(isLoading) {
+        if (isLoading) {
+            $("#overlay").fadeIn();
+        } else {
+            $("#overlay").fadeOut();
+        }
+    };
+
+    function OrganizationDetails(code) {
+        $.ajax({
+            type: 'GET',
+            url: '/api/organizations/' + code,
+            dataType: "json",
+            beforeSend: function () {
+                SetLoadingState(true);
+            },
+            success: function (response) {
+                ShowOrgInfo(response);
+            },
+            error: function (error) {
+                $("#SearchResults").text(error.responseText);
+            },
+            complete: function () {
+                SetLoadingState(false);
+            }
+        })
+    };
+
+    function ShowOrgInfo(data) {
+        $("#formModal")[0].reset();
+
+        if (data == null || data == undefined) {
+            return;
+        }
+
+        $('#formPositions').attr("href", "/Home/Positions?orgId=" + data.code);
+        $('#formCode').val(data.code);
+        $('#formLabel').val(data.label);
+        $('#formVAT').val(data.vat);
+        $('#formOrgType').val(data.organizationTypeLabel);
+        $('#formParentOrg').val(data.subOrganizationOfLabel);
+        $('#formCreatedDate').val(data.foundationDate);
+        $('#formDescription').val(data.description);
+        $('#formCity').val(data.city);
+        $('#formPostCode').val(data.postCode);
+        $('#formFullAddress').val(data.fullAddress);
+
+        if (data.fullAddress != undefined && data.fullAddress.length > 0) {
+            $("#formGmaps").attr("href", "https://www.google.com/maps/search/" + encodeURI(data.fullAddress));
+        }
+
+        var formUrl = $('#formUrl');
+        if (data.url != undefined && data.url.length > 0) {
+            $("#formUrlText").val(data.url);
+            formUrl.attr("href", data.url);
+            formUrl.show();
+        } else {
+            formUrl.hide();
+        }
+
+        $('#formTelephone').val(data.telephone);
+
+        if (data.email != undefined && data.email.length > 0) {
+            $('#formEmail').val(data.email);
+            $('#formSendEmail').attr('href', 'mailto:' + data.email);
+            $('#formSendEmail').show();
+        } else {
+            $('#formSendEmail').hide();
+        }
+
+        $('#orgInfoModal').modal('show');
+    };
+
+    function FindOrgTypeDescription(id) {
+        var orgTypes = JSON.parse(localStorage.getItem("orgTypes"));
+
+        if (orgTypes == null || orgTypes == undefined) {
+            return '';
+        }
+
+        for (let i = 0; i < orgTypes.length; i++) {
+            if (orgTypes[i].id == id) {
+                return orgTypes[i].description;
+            }
+        }
+    };
+
+    function PrintResults(data) {
+        if (data == null || data.length == 0) {
+            $('#tResultBody').html('');
+            return;
+        }
+
+        var resultHtml = '';
+
+        for (let index = 0; index < data.length; index++) {
+            resultHtml += '<tr scope="row">';
+            resultHtml += '<td>' +
+                '<button onclick="OrganizationDetails(\'' + data[index].code + '\')" data-toggle="tooltip" data-placement="bottom" title="Επισκόπηση Φορέα" type="button" class="btn btn-link">' + data[index].code + '</button>' +
+                '</td>';
+            resultHtml += '<td>' + data[index].preferredLabel + '</td>';
+
+            if (data[index].subOrganizationOf === null) {
+                resultHtml += '<td></td>';
+            } else {
+                resultHtml += '<td>' +
+                    '<button onclick="OrganizationDetails(\'' + data[index].subOrganizationOf + '\')" data-toggle="tooltip" data-placement="bottom" title="Επισκόπηση Εποπτεύων Φορέα" type="button" class="btn btn-link">' + data[index].subOrganizationOf + '</button>'
+                    + '</td>';
+            }
+            resultHtml += '</tr>'
+        }
+
+        $('#tResultBody').html(resultHtml);
+    };
+
+    function ClearSearchFields() {
+        $("#searchForm")[0].reset();
+    }
+
+</script>
