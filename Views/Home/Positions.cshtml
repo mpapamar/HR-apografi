@@ -17,7 +17,7 @@
 </div>
 
 <div>
-    <button type="button" class="btn btn-primary" title="Ανάκτηση προκυρήξεων πλήρωσης θέσεων" onclick="GetProkiriksis(@Model.OrganizationIdDiavgeia)">Προκυρήξεις</button>
+    <button type="button" class="btn btn-primary" title="Ανάκτηση προκηρύξεων πλήρωσης θέσεων" onclick="GetProkiriksis(@Model.OrganizationIdDiavgeia)">Προκηρύξεις</button>
     <button type="button" class="btn btn-primary" title="Ανάκτηση πίνακων επιτυχόντων, διοριστέων και επιλαχόντων" onclick="GetPinakes(@Model.OrganizationIdDiavgeia)">Πίνακες</button>
     <button type="button" class="btn btn-primary" title="Ανάκτηση Διορισμών" onclick="GetDiorismoi(@Model.OrganizationIdDiavgeia)">Διορισμοί</button>
 </div>
@@ -125,7 +125,7 @@
             },
             success: function (response) {
                 ShowDecisions(response);
-                $("#SearchResultHeader").text("Προκυρήξεις πλήρωσης θέσεων");
+                $("#SearchResultHeader").text("Προκηρύξεις πλήρωσης θέσεων");
                 $("#SearchResultLabel").text("Προβολή των αποτελεσμάτων των τελευταίων 180 ημερών.");
             },
             error: function (error) {
